@@ -1,0 +1,84 @@
+<html>
+<head>
+<title>data_preprocess.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+data_preprocess.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">pandas </span><span class="s0">as </span><span class="s1">pd</span>
+<span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">preprocessing </span><span class="s0">import </span><span class="s1">MinMaxScaler</span>
+<span class="s0">import </span><span class="s1">os</span>
+
+<span class="s3"># 创建结果保存目录</span>
+<span class="s1">os</span><span class="s2">.</span><span class="s1">makedirs</span><span class="s2">(</span><span class="s4">&quot;../results&quot;</span><span class="s2">, </span><span class="s1">exist_ok</span><span class="s2">=</span><span class="s0">True</span><span class="s2">)</span>
+
+<span class="s3"># 1. 读取数据</span>
+<span class="s3"># 针对你的CSV格式：,数据时间,总有功功率（kw）</span>
+<span class="s1">file_path </span><span class="s2">= </span><span class="s4">&quot;../data/power_load.csv&quot;</span>
+<span class="s0">if not </span><span class="s1">os</span><span class="s2">.</span><span class="s1">path</span><span class="s2">.</span><span class="s1">exists</span><span class="s2">(</span><span class="s1">file_path</span><span class="s2">):</span>
+    <span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;错误：未找到文件 </span><span class="s0">{</span><span class="s1">file_path</span><span class="s0">}</span><span class="s4">，请确认文件名和路径！&quot;</span><span class="s2">)</span>
+    <span class="s1">exit</span><span class="s2">()</span>
+
+<span class="s1">data </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">read_csv</span><span class="s2">(</span><span class="s1">file_path</span><span class="s2">)</span>
+
+<span class="s3"># 2. 严格按位置提取数据并修复对齐问题</span>
+<span class="s3"># iloc[:, 1] 是“数据时间”，iloc[:, 2] 是“总有功功率（kw）”</span>
+<span class="s1">times </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">to_datetime</span><span class="s2">(</span><span class="s1">data</span><span class="s2">.</span><span class="s1">iloc</span><span class="s2">[:, </span><span class="s5">1</span><span class="s2">])</span>
+<span class="s1">load_values </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">to_numeric</span><span class="s2">(</span><span class="s1">data</span><span class="s2">.</span><span class="s1">iloc</span><span class="s2">[:, </span><span class="s5">2</span><span class="s2">], </span><span class="s1">errors</span><span class="s2">=</span><span class="s4">'coerce'</span><span class="s2">).</span><span class="s1">values </span><span class="s3"># 使用.values防止索引对齐失败</span>
+
+<span class="s3"># 3. 重新构建干净的 DataFrame</span>
+<span class="s1">clean_df </span><span class="s2">= </span><span class="s1">pd</span><span class="s2">.</span><span class="s1">DataFrame</span><span class="s2">({</span><span class="s4">'负荷值'</span><span class="s2">: </span><span class="s1">load_values</span><span class="s2">}, </span><span class="s1">index</span><span class="s2">=</span><span class="s1">times</span><span class="s2">)</span>
+<span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;原始数据点数: </span><span class="s0">{</span><span class="s1">len</span><span class="s2">(</span><span class="s1">clean_df</span><span class="s2">)</span><span class="s0">}</span><span class="s4">&quot;</span><span class="s2">)</span>
+
+<span class="s3"># 4. 数据重采样：将15分钟数据转化为小时平均值</span>
+<span class="s1">data_hourly </span><span class="s2">= </span><span class="s1">clean_df</span><span class="s2">.</span><span class="s1">resample</span><span class="s2">(</span><span class="s4">'H'</span><span class="s2">).</span><span class="s1">mean</span><span class="s2">()</span>
+
+<span class="s3"># 5. 缺失值填充：先插值，再用前后值填充边缘</span>
+<span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">] = </span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">].</span><span class="s1">interpolate</span><span class="s2">(</span><span class="s1">method</span><span class="s2">=</span><span class="s4">'linear'</span><span class="s2">)</span>
+<span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">] = </span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">].</span><span class="s1">ffill</span><span class="s2">().</span><span class="s1">bfill</span><span class="s2">()</span>
+
+<span class="s3"># 6. 异常值处理：3σ原则剔除</span>
+<span class="s1">mean </span><span class="s2">= </span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">].</span><span class="s1">mean</span><span class="s2">()</span>
+<span class="s1">std </span><span class="s2">= </span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">].</span><span class="s1">std</span><span class="s2">()</span>
+<span class="s1">data_hourly </span><span class="s2">= </span><span class="s1">data_hourly</span><span class="s2">[(</span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">] &gt;= </span><span class="s1">mean </span><span class="s2">- </span><span class="s5">3</span><span class="s2">*</span><span class="s1">std</span><span class="s2">) &amp; (</span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">] &lt;= </span><span class="s1">mean </span><span class="s2">+ </span><span class="s5">3</span><span class="s2">*</span><span class="s1">std</span><span class="s2">)]</span>
+
+<span class="s3"># 7. 归一化</span>
+<span class="s1">scaler </span><span class="s2">= </span><span class="s1">MinMaxScaler</span><span class="s2">(</span><span class="s1">feature_range</span><span class="s2">=(</span><span class="s5">0</span><span class="s2">, </span><span class="s5">1</span><span class="s2">))</span>
+<span class="s1">scaled_data </span><span class="s2">= </span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">fit_transform</span><span class="s2">(</span><span class="s1">data_hourly</span><span class="s2">[</span><span class="s4">&quot;负荷值&quot;</span><span class="s2">].</span><span class="s1">values</span><span class="s2">.</span><span class="s1">reshape</span><span class="s2">(-</span><span class="s5">1</span><span class="s2">, </span><span class="s5">1</span><span class="s2">))</span>
+
+<span class="s3"># 8. 构建时序序列：用前24小时预测下1小时</span>
+<span class="s1">time_step </span><span class="s2">= </span><span class="s5">24</span>
+<span class="s1">X</span><span class="s2">, </span><span class="s1">y </span><span class="s2">= [], []</span>
+<span class="s0">for </span><span class="s1">i </span><span class="s0">in </span><span class="s1">range</span><span class="s2">(</span><span class="s1">time_step</span><span class="s2">, </span><span class="s1">len</span><span class="s2">(</span><span class="s1">scaled_data</span><span class="s2">)):</span>
+    <span class="s1">X</span><span class="s2">.</span><span class="s1">append</span><span class="s2">(</span><span class="s1">scaled_data</span><span class="s2">[</span><span class="s1">i</span><span class="s2">-</span><span class="s1">time_step</span><span class="s2">:</span><span class="s1">i</span><span class="s2">, </span><span class="s5">0</span><span class="s2">])</span>
+    <span class="s1">y</span><span class="s2">.</span><span class="s1">append</span><span class="s2">(</span><span class="s1">scaled_data</span><span class="s2">[</span><span class="s1">i</span><span class="s2">, </span><span class="s5">0</span><span class="s2">])</span>
+
+<span class="s1">X </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">array</span><span class="s2">(</span><span class="s1">X</span><span class="s2">).</span><span class="s1">reshape</span><span class="s2">(-</span><span class="s5">1</span><span class="s2">, </span><span class="s1">time_step</span><span class="s2">, </span><span class="s5">1</span><span class="s2">)</span>
+<span class="s1">y </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">array</span><span class="s2">(</span><span class="s1">y</span><span class="s2">)</span>
+
+<span class="s3"># 9. 划分并保存</span>
+<span class="s1">train_size </span><span class="s2">= </span><span class="s1">int</span><span class="s2">(</span><span class="s5">0.8 </span><span class="s2">* </span><span class="s1">len</span><span class="s2">(</span><span class="s1">X</span><span class="s2">))</span>
+<span class="s1">np</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s4">&quot;../results/X_train.npy&quot;</span><span class="s2">, </span><span class="s1">X</span><span class="s2">[:</span><span class="s1">train_size</span><span class="s2">])</span>
+<span class="s1">np</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s4">&quot;../results/X_test.npy&quot;</span><span class="s2">, </span><span class="s1">X</span><span class="s2">[</span><span class="s1">train_size</span><span class="s2">:])</span>
+<span class="s1">np</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s4">&quot;../results/y_train.npy&quot;</span><span class="s2">, </span><span class="s1">y</span><span class="s2">[:</span><span class="s1">train_size</span><span class="s2">])</span>
+<span class="s1">np</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s4">&quot;../results/y_test.npy&quot;</span><span class="s2">, </span><span class="s1">y</span><span class="s2">[</span><span class="s1">train_size</span><span class="s2">:])</span>
+<span class="s3"># 保存 scaler 的参数以便后续反归一化</span>
+<span class="s1">np</span><span class="s2">.</span><span class="s1">save</span><span class="s2">(</span><span class="s4">&quot;../results/scaler_params.npy&quot;</span><span class="s2">, [</span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">min_</span><span class="s2">, </span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">scale_</span><span class="s2">])</span>
+
+<span class="s1">print</span><span class="s2">(</span><span class="s4">&quot;数据预处理成功完成！&quot;</span><span class="s2">)</span>
+<span class="s1">print</span><span class="s2">(</span><span class="s4">f&quot;最终用于训练的小时级样本数: </span><span class="s0">{</span><span class="s1">len</span><span class="s2">(</span><span class="s1">X</span><span class="s2">)</span><span class="s0">}</span><span class="s4">&quot;</span><span class="s2">)</span></pre>
+</body>
+</html>

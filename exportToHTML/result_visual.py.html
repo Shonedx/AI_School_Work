@@ -1,0 +1,55 @@
+<html>
+<head>
+<title>result_visual.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #7a7e85;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+result_visual.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">import </span><span class="s1">matplotlib</span><span class="s2">.</span><span class="s1">pyplot </span><span class="s0">as </span><span class="s1">plt</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s2">.</span><span class="s1">preprocessing </span><span class="s0">import </span><span class="s1">MinMaxScaler</span>
+
+<span class="s3"># 1. 加载结果</span>
+<span class="s1">y_test </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">load</span><span class="s2">(</span><span class="s4">&quot;../results/y_test.npy&quot;</span><span class="s2">)</span>
+<span class="s1">y_pred </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">load</span><span class="s2">(</span><span class="s4">&quot;../results/y_pred.npy&quot;</span><span class="s2">)</span>
+<span class="s1">history </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">load</span><span class="s2">(</span><span class="s4">&quot;../results/history.npy&quot;</span><span class="s2">, </span><span class="s1">allow_pickle</span><span class="s2">=</span><span class="s0">True</span><span class="s2">).</span><span class="s1">item</span><span class="s2">()</span>
+<span class="s1">params </span><span class="s2">= </span><span class="s1">np</span><span class="s2">.</span><span class="s1">load</span><span class="s2">(</span><span class="s4">&quot;../results/scaler_params.npy&quot;</span><span class="s2">)</span>
+
+<span class="s3"># 2. 手动恢复归一化器进行反转</span>
+<span class="s1">scaler </span><span class="s2">= </span><span class="s1">MinMaxScaler</span><span class="s2">()</span>
+<span class="s1">scaler</span><span class="s2">.</span><span class="s1">min_</span><span class="s2">, </span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">scale_ </span><span class="s2">= </span><span class="s1">params</span><span class="s2">[</span><span class="s5">0</span><span class="s2">], </span><span class="s1">params</span><span class="s2">[</span><span class="s5">1</span><span class="s2">]</span>
+
+<span class="s1">y_true_inv </span><span class="s2">= </span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">inverse_transform</span><span class="s2">(</span><span class="s1">y_test</span><span class="s2">.</span><span class="s1">reshape</span><span class="s2">(-</span><span class="s5">1</span><span class="s2">, </span><span class="s5">1</span><span class="s2">))</span>
+<span class="s1">y_pred_inv </span><span class="s2">= </span><span class="s1">scaler</span><span class="s2">.</span><span class="s1">inverse_transform</span><span class="s2">(</span><span class="s1">y_pred</span><span class="s2">.</span><span class="s1">reshape</span><span class="s2">(-</span><span class="s5">1</span><span class="s2">, </span><span class="s5">1</span><span class="s2">))</span>
+
+<span class="s3"># 3. 绘制损失曲线</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">figure</span><span class="s2">(</span><span class="s1">figsize</span><span class="s2">=(</span><span class="s5">10</span><span class="s2">, </span><span class="s5">5</span><span class="s2">))</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">history</span><span class="s2">[</span><span class="s4">'loss'</span><span class="s2">], </span><span class="s1">label</span><span class="s2">=</span><span class="s4">'Train Loss'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">history</span><span class="s2">[</span><span class="s4">'val_loss'</span><span class="s2">], </span><span class="s1">label</span><span class="s2">=</span><span class="s4">'Val Loss'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">title</span><span class="s2">(</span><span class="s4">'Training and Validation Loss'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">legend</span><span class="s2">()</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">savefig</span><span class="s2">(</span><span class="s4">&quot;../results/loss_curve.png&quot;</span><span class="s2">)</span>
+
+<span class="s3"># 4. 绘制负荷预测对比图 (取最近一周即168小时数据)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">figure</span><span class="s2">(</span><span class="s1">figsize</span><span class="s2">=(</span><span class="s5">15</span><span class="s2">, </span><span class="s5">6</span><span class="s2">))</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">y_true_inv</span><span class="s2">[-</span><span class="s5">168</span><span class="s2">:], </span><span class="s1">label</span><span class="s2">=</span><span class="s4">'Actual Load'</span><span class="s2">, </span><span class="s1">color</span><span class="s2">=</span><span class="s4">'blue'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">plot</span><span class="s2">(</span><span class="s1">y_pred_inv</span><span class="s2">[-</span><span class="s5">168</span><span class="s2">:], </span><span class="s1">label</span><span class="s2">=</span><span class="s4">'Predicted Load'</span><span class="s2">, </span><span class="s1">color</span><span class="s2">=</span><span class="s4">'red'</span><span class="s2">, </span><span class="s1">linestyle</span><span class="s2">=</span><span class="s4">'--'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">title</span><span class="s2">(</span><span class="s4">'Power Load Prediction (Last 168 Hours)'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">ylabel</span><span class="s2">(</span><span class="s4">'Load (kW)'</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">legend</span><span class="s2">()</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">savefig</span><span class="s2">(</span><span class="s4">&quot;../results/prediction_contrast.png&quot;</span><span class="s2">)</span>
+<span class="s1">plt</span><span class="s2">.</span><span class="s1">show</span><span class="s2">()</span></pre>
+</body>
+</html>

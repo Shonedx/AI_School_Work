@@ -1,0 +1,69 @@
+<html>
+<head>
+<title>model_train.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #7a7e85;}
+.s3 { color: #bcbec4;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#191a1c">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+model_train.py</font>
+</center></td></tr></table>
+<pre><span class="s0">import </span><span class="s1">numpy </span><span class="s0">as </span><span class="s1">np</span>
+<span class="s0">import </span><span class="s1">os</span>
+<span class="s2"># 导入模型定义函数</span>
+<span class="s0">from </span><span class="s1">model_build </span><span class="s0">import </span><span class="s1">build_lstm_model</span>
+<span class="s0">from </span><span class="s1">sklearn</span><span class="s3">.</span><span class="s1">metrics </span><span class="s0">import </span><span class="s1">mean_absolute_error</span><span class="s3">, </span><span class="s1">mean_squared_error</span>
+<span class="s0">import </span><span class="s1">math</span>
+
+<span class="s2"># 1. 加载数据</span>
+<span class="s2"># 确保路径指向 results 文件夹</span>
+<span class="s1">X_train </span><span class="s3">= </span><span class="s1">np</span><span class="s3">.</span><span class="s1">load</span><span class="s3">(</span><span class="s4">&quot;../results/X_train.npy&quot;</span><span class="s3">)</span>
+<span class="s1">X_test </span><span class="s3">= </span><span class="s1">np</span><span class="s3">.</span><span class="s1">load</span><span class="s3">(</span><span class="s4">&quot;../results/X_test.npy&quot;</span><span class="s3">)</span>
+<span class="s1">y_train </span><span class="s3">= </span><span class="s1">np</span><span class="s3">.</span><span class="s1">load</span><span class="s3">(</span><span class="s4">&quot;../results/y_train.npy&quot;</span><span class="s3">)</span>
+<span class="s1">y_test </span><span class="s3">= </span><span class="s1">np</span><span class="s3">.</span><span class="s1">load</span><span class="s3">(</span><span class="s4">&quot;../results/y_test.npy&quot;</span><span class="s3">)</span>
+
+<span class="s2"># 2. 初始化模型</span>
+<span class="s2"># X_train.shape[1] 是时间步长（24），1 是特征数</span>
+<span class="s1">input_shape </span><span class="s3">= (</span><span class="s1">X_train</span><span class="s3">.</span><span class="s1">shape</span><span class="s3">[</span><span class="s5">1</span><span class="s3">], </span><span class="s5">1</span><span class="s3">)</span>
+<span class="s1">model </span><span class="s3">= </span><span class="s1">build_lstm_model</span><span class="s3">(</span><span class="s1">input_shape</span><span class="s3">)</span>
+
+<span class="s2"># 3. 开始训练</span>
+<span class="s1">print</span><span class="s3">(</span><span class="s4">&quot;开始模型训练，请耐心等待...&quot;</span><span class="s3">)</span>
+<span class="s1">history </span><span class="s3">= </span><span class="s1">model</span><span class="s3">.</span><span class="s1">fit</span><span class="s3">(</span>
+    <span class="s1">X_train</span><span class="s3">, </span><span class="s1">y_train</span><span class="s3">,</span>
+    <span class="s1">batch_size</span><span class="s3">=</span><span class="s5">64</span><span class="s3">,</span>
+    <span class="s1">epochs</span><span class="s3">=</span><span class="s5">30</span><span class="s3">,</span>
+    <span class="s1">validation_data</span><span class="s3">=(</span><span class="s1">X_test</span><span class="s3">, </span><span class="s1">y_test</span><span class="s3">),</span>
+    <span class="s1">verbose</span><span class="s3">=</span><span class="s5">1</span>
+<span class="s3">)</span>
+
+<span class="s2"># 4. 保存训练产物（这是可视化脚本运行的前提！）</span>
+<span class="s1">print</span><span class="s3">(</span><span class="s4">&quot;正在保存训练结果...&quot;</span><span class="s3">)</span>
+<span class="s1">model</span><span class="s3">.</span><span class="s1">save</span><span class="s3">(</span><span class="s4">&quot;../results/lstm_model.h5&quot;</span><span class="s3">) </span><span class="s2"># 保存模型文件</span>
+<span class="s1">np</span><span class="s3">.</span><span class="s1">save</span><span class="s3">(</span><span class="s4">&quot;../results/history.npy&quot;</span><span class="s3">, </span><span class="s1">history</span><span class="s3">.</span><span class="s1">history</span><span class="s3">) </span><span class="s2"># 保存损失曲线数据</span>
+
+<span class="s2"># 5. 进行预测</span>
+<span class="s1">y_pred </span><span class="s3">= </span><span class="s1">model</span><span class="s3">.</span><span class="s1">predict</span><span class="s3">(</span><span class="s1">X_test</span><span class="s3">)</span>
+<span class="s1">np</span><span class="s3">.</span><span class="s1">save</span><span class="s3">(</span><span class="s4">&quot;../results/y_pred.npy&quot;</span><span class="s3">, </span><span class="s1">y_pred</span><span class="s3">) </span><span class="s2"># 保存预测值</span>
+
+<span class="s2"># 6. 计算评估指标并打印 (实训报告必填)</span>
+<span class="s2"># 注意：这里计算的是归一化后的指标，仅供训练参考</span>
+<span class="s1">mae </span><span class="s3">= </span><span class="s1">mean_absolute_error</span><span class="s3">(</span><span class="s1">y_test</span><span class="s3">, </span><span class="s1">y_pred</span><span class="s3">)</span>
+<span class="s1">rmse </span><span class="s3">= </span><span class="s1">math</span><span class="s3">.</span><span class="s1">sqrt</span><span class="s3">(</span><span class="s1">mean_squared_error</span><span class="s3">(</span><span class="s1">y_test</span><span class="s3">, </span><span class="s1">y_pred</span><span class="s3">))</span>
+
+<span class="s1">print</span><span class="s3">(</span><span class="s4">&quot;</span><span class="s0">\n</span><span class="s4">&quot; </span><span class="s3">+ </span><span class="s4">&quot;=&quot;</span><span class="s3">*</span><span class="s5">30</span><span class="s3">)</span>
+<span class="s1">print</span><span class="s3">(</span><span class="s4">&quot;模型训练并保存完成！&quot;</span><span class="s3">)</span>
+<span class="s1">print</span><span class="s3">(</span><span class="s4">f&quot;测试集 MAE (归一化): </span><span class="s0">{</span><span class="s1">mae</span><span class="s0">:</span><span class="s4">.4f</span><span class="s0">}</span><span class="s4">&quot;</span><span class="s3">)</span>
+<span class="s1">print</span><span class="s3">(</span><span class="s4">f&quot;测试集 RMSE (归一化): </span><span class="s0">{</span><span class="s1">rmse</span><span class="s0">:</span><span class="s4">.4f</span><span class="s0">}</span><span class="s4">&quot;</span><span class="s3">)</span>
+<span class="s1">print</span><span class="s3">(</span><span class="s4">&quot;=&quot;</span><span class="s3">*</span><span class="s5">30</span><span class="s3">)</span></pre>
+</body>
+</html>
